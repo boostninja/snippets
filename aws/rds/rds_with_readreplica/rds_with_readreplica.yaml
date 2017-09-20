@@ -8,8 +8,8 @@ Parameters:
 
   DBInstanceInstanceClass:
     AllowedValues:
-      - db.t2.micro
-    Default: db.t2.micro
+      - db.t2.small
+    Default: db.t2.small
     Description: DB Instance InstanceClass
     Type: String
 
@@ -116,6 +116,9 @@ Resources:
       StorageType: gp2
       VPCSecurityGroups:
         - !Ref DBInstanceSecurityGroup
+      Tags:
+        - Key: Name
+          Value: production-rds-mysql
 
   DBInstanceReadReplica:
     Type: AWS::RDS::DBInstance
@@ -123,7 +126,7 @@ Resources:
       AllocatedStorage: 25
       AllowMajorVersionUpgrade: true
       AutoMinorVersionUpgrade: true
-      BackupRetentionPeriod: 0
+      BackupRetentionPeriod: 1
       DBInstanceClass: !Ref DBInstanceInstanceClass
       # DBSubnetGroupName should not be specified for Read Replicas
       # CloudFormation Error Message: DbSubnetGroupName should not be specified for read replicas that are created in the same region as the master
@@ -136,6 +139,9 @@ Resources:
       StorageType: gp2
       VPCSecurityGroups:
         - !Ref DBInstanceSecurityGroup
+      Tags:
+        - Key: Name
+          Value: production-rds-mysql-replica
 
 
 Outputs: {}
