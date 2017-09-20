@@ -7,9 +7,10 @@ Description: A basic CloudFormation template for an RDS Aurora cluster.
 Parameters:
 
   AuroraDBInstanceType:
-    Default: db.t2.large
+    Default: db.t2.medium
     AllowedValues:
-      - db.t2.large
+      - db.t2.medium
+      - db.r3.large
     Description: The instance type to use for the database.
     Type: String
 
