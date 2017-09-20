@@ -111,7 +111,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: 3306
           ToPort: 3306
-          # only allow in IP addresses from Periscope
+          # TODO: update this SG
           CidrIp: 0.0.0.0/0
       VpcId: !Ref VPC
 
@@ -141,7 +141,7 @@ Resources:
       DBClusterIdentifier: !Ref AuroraDBCluster
       DBInstanceClass: !Ref AuroraDBInstanceType
       DBSubnetGroupName: !Ref AuroraDBSubnetGroup
-      # PubliclyAccessible: true is not ideal but is required by Periscope
+      # PubliclyAccessible: true is not ideal
       PubliclyAccessible: true
       OptionGroupName: !Ref AuroraOptionGroup
       DBParameterGroupName: !Ref AuroraDBParameterGroup

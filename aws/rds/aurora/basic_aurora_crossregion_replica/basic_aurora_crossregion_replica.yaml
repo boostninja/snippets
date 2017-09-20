@@ -111,7 +111,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: 3306
           ToPort: 3306
-          # only allow in IP addresses from Periscope
+          # TODO: update this SG
           CidrIp: 0.0.0.0/0
       VpcId: !Ref VPC
 
