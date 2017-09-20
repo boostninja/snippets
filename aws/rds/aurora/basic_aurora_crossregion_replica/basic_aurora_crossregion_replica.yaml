@@ -1,0 +1,150 @@
+---
+
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: A basic CloudFormation template for an RDS Aurora cluster.
+
+Parameters:
+
+  AuroraDBInstanceType:
+    Default: db.r3.large
+    AllowedValues:
+      - db.t2.medium
+      - db.r3.large
+    Description: The instance type to use for the database.
+    Type: String
+
+  LiveAuroraUSW2AuroraClusterARN:
+    Description: Source DB Instance ARN
+    Type: String
+
+  AuroraDBBackupRetentionPeriod:
+    Type: Number
+    Default: 1
+
+Resources:
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/24
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  PublicInternetRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicInternetRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref PublicInternetRouteTable
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  # Two subnets in different AZs are required because a
+  # DBSubnetGroup requires two subnets in unique AZs
+  # first subnet - this needs to be in "AZ x"
+  PublicSubnet01:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 0, !GetAZs "" ]
+      CidrBlock: 10.0.0.0/25
+      VpcId: !Ref VPC
+
+  # second subnet - this needs to be in "AZ y"
+  PublicSubnet02:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 3, !GetAZs "" ]
+      CidrBlock: 10.0.0.128/25
+      VpcId: !Ref VPC
+
+  PublicSubnet01RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicInternetRouteTable
+      SubnetId: !Ref PublicSubnet01
+
+  PublicSubnet02RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicInternetRouteTable
+      SubnetId: !Ref PublicSubnet02
+
+  AuroraReadReplicaOptionGroup:
+    Type: AWS::RDS::OptionGroup
+    Properties:
+      EngineName: aurora
+      MajorEngineVersion: 5.6
+      OptionGroupDescription: Aurora Read Replica Options Group
+
+  AuroraDBClusterParameterGroup:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      Description: Aurora DB Cluster Parameter Group
+      Family: aurora5.6
+      Parameters:
+        binlog_format: 'OFF'
+
+  AuroraDBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: Aurora DB Instance Parameter Group
+      Family: aurora5.6
+
+  AuroraDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: DB Instance Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          # only allow in IP addresses from Periscope
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref VPC
+
+  AuroraDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: DB Instance Subnets
+      SubnetIds:
+        - !Ref PublicSubnet01
+        - !Ref PublicSubnet02
+
+  AuroraDBCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora
+      BackupRetentionPeriod: !Ref AuroraDBBackupRetentionPeriod
+      ReplicationSourceIdentifier: !Ref LiveAuroraUSW2AuroraClusterARN
+      DBSubnetGroupName: !Ref AuroraDBSubnetGroup
+      DBClusterParameterGroupName: !Ref AuroraDBClusterParameterGroup
+      VpcSecurityGroupIds:
+        - !Ref AuroraDBSecurityGroup
+
+  AuroraInstance01:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: aurora
+      DBClusterIdentifier: !Ref AuroraDBCluster
+      DBInstanceClass: !Ref AuroraDBInstanceType
+      DBSubnetGroupName: !Ref AuroraDBSubnetGroup
+      # PubliclyAccessible: true is not ideal but is required by Periscope
+      PubliclyAccessible: true
+      OptionGroupName: !Ref AuroraReadReplicaOptionGroup
+      DBParameterGroupName: !Ref AuroraDBParameterGroup
+
+
+Outputs: {}
