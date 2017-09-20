@@ -141,7 +141,7 @@ Resources:
       DBClusterIdentifier: !Ref AuroraDBCluster
       DBInstanceClass: !Ref AuroraDBInstanceType
       DBSubnetGroupName: !Ref AuroraDBSubnetGroup
-      # PubliclyAccessible: true is not ideal but is required by Periscope
+      # PubliclyAccessible: true is not ideal
       PubliclyAccessible: true
       OptionGroupName: !Ref AuroraReadReplicaOptionGroup
       DBParameterGroupName: !Ref AuroraDBParameterGroup
