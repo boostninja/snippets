@@ -81,12 +81,12 @@ Resources:
       RouteTableId: !Ref PublicInternetRouteTable
       SubnetId: !Ref PublicSubnet02
 
-  AuroraReadReplicaOptionGroup:
+  AuroraOptionGroup:
     Type: AWS::RDS::OptionGroup
     Properties:
       EngineName: aurora
       MajorEngineVersion: 5.6
-      OptionGroupDescription: Aurora Read Replica Options Group
+      OptionGroupDescription: Aurora Option Group
 
   AuroraDBClusterParameterGroup:
     Type: AWS::RDS::DBClusterParameterGroup
@@ -142,7 +142,7 @@ Resources:
       DBSubnetGroupName: !Ref AuroraDBSubnetGroup
       # PubliclyAccessible: true is not ideal but is required by Periscope
       PubliclyAccessible: true
-      OptionGroupName: !Ref AuroraReadReplicaOptionGroup
+      OptionGroupName: !Ref AuroraOptionGroup
       DBParameterGroupName: !Ref AuroraDBParameterGroup
 
 Outputs: {}
