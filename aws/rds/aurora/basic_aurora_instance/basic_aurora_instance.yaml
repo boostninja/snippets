@@ -6,23 +6,20 @@ Description: A basic CloudFormation template for an RDS Aurora cluster.
 
 Parameters:
 
-  AuroraDBBackupRetentionPeriod:
-    Default: 1
-    MinValue: 1
-    MaxValue: 35
-    Type: Number
-
   AuroraDBInstanceType:
-    Default: db.t2.small
+    Default: db.t2.large
     AllowedValues:
-      - db.t2.small
+      - db.t2.large
     Description: The instance type to use for the database.
     Type: String
 
-  AuroraDBMasterUserPassword:
-    Description: DB Instance MasterUserPassword
-    NoEcho: true
+  LiveAuroraUSW2AuroraClusterARN:
+    Description: Source DB Instance ARN
     Type: String
+
+  AuroraDBBackupRetentionPeriod:
+    Type: Number
+    Default: 1
 
 Resources:
 
@@ -84,6 +81,27 @@ Resources:
       RouteTableId: !Ref PublicInternetRouteTable
       SubnetId: !Ref PublicSubnet02
 
+  AuroraReadReplicaOptionGroup:
+    Type: AWS::RDS::OptionGroup
+    Properties:
+      EngineName: aurora
+      MajorEngineVersion: 5.6
+      OptionGroupDescription: Aurora Read Replica Options Group
+
+  AuroraDBClusterParameterGroup:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      Description: Aurora DB Cluster Parameter Group
+      Family: aurora5.6
+      Parameters:
+        binlog_format: 'OFF'
+
+  AuroraDBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: Aurora DB Instance Parameter Group
+      Family: aurora5.6
+
   AuroraDBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -92,6 +110,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: 3306
           ToPort: 3306
+          # only allow in IP addresses from Periscope
           CidrIp: 0.0.0.0/0
       VpcId: !Ref VPC
 
@@ -107,10 +126,10 @@ Resources:
     Type: AWS::RDS::DBCluster
     Properties:
       Engine: aurora
-      MasterUsername: aurora_test
-      MasterUserPassword: !Ref AuroraDBMasterUserPassword
       BackupRetentionPeriod: !Ref AuroraDBBackupRetentionPeriod
+      ReplicationSourceIdentifier: !Ref LiveAuroraUSW2AuroraClusterARN
       DBSubnetGroupName: !Ref AuroraDBSubnetGroup
+      DBClusterParameterGroupName: !Ref AuroraDBClusterParameterGroup
       VpcSecurityGroupIds:
         - !Ref AuroraDBSecurityGroup
 
@@ -121,5 +140,9 @@ Resources:
       DBClusterIdentifier: !Ref AuroraDBCluster
       DBInstanceClass: !Ref AuroraDBInstanceType
       DBSubnetGroupName: !Ref AuroraDBSubnetGroup
+      # PubliclyAccessible: true is not ideal but is required by Periscope
+      PubliclyAccessible: true
+      OptionGroupName: !Ref AuroraReadReplicaOptionGroup
+      DBParameterGroupName: !Ref AuroraDBParameterGroup
 
 Outputs: {}
